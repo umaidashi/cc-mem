@@ -3,6 +3,7 @@
 import { save } from "./src/cli/save";
 import { search } from "./src/cli/search";
 import { importSessions } from "./src/cli/import";
+import { log } from "./src/cli/log";
 
 const VERSION = "0.1.0";
 const NAME = "cc-mem";
@@ -13,6 +14,7 @@ Usage:
   ${NAME} save              Save conversation from stdin
   ${NAME} search <query>    Search past memories
   ${NAME} import              Import all session logs
+  ${NAME} log [--last N]     Show recent session logs (default: 10)
   ${NAME} stats             Show memory statistics
 
 Options:
@@ -34,6 +36,7 @@ function parseArgs(args: string[]): {
   command: string;
   query: string;
   limit: number;
+  last: number;
   dryRun: boolean;
   project: string;
   verbose: boolean;
@@ -41,6 +44,7 @@ function parseArgs(args: string[]): {
 } {
   let command = "";
   let limit = 5;
+  let last = 10;
   let dryRun = false;
   let project = "";
   let verbose = false;
@@ -55,6 +59,8 @@ function parseArgs(args: string[]): {
       command = "version";
     } else if (arg === "--limit" && i + 1 < args.length) {
       limit = parseInt(args[++i], 10) || 5;
+    } else if (arg === "--last" && i + 1 < args.length) {
+      last = parseInt(args[++i], 10) || 10;
     } else if (arg === "--dry-run") {
       dryRun = true;
     } else if (arg === "--project" && i + 1 < args.length) {
@@ -70,10 +76,10 @@ function parseArgs(args: string[]): {
     }
   }
 
-  return { command, query: rest.join(" "), limit, dryRun, project, verbose, withContext };
+  return { command, query: rest.join(" "), limit, last, dryRun, project, verbose, withContext };
 }
 
-const { command, query, limit, dryRun, project, verbose, withContext } = parseArgs(process.argv.slice(2));
+const { command, query, limit, last, dryRun, project, verbose, withContext } = parseArgs(process.argv.slice(2));
 
 switch (command) {
   case "help":
@@ -106,6 +112,9 @@ switch (command) {
     console.error(`Total duplicates: ${result.totalDuplicates}`);
     break;
   }
+  case "log":
+    await log(last);
+    break;
   case "stats":
     await (await import("./src/cli/stats")).stats();
     break;

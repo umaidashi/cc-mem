@@ -26,7 +26,7 @@
 ## P2: 運用・可視化
 
 - [x] `cc-mem import` — 既存セッションログの一括取り込み → ADR-005
-- [ ] `cc-mem log` — 直近N セッションの保存履歴を表示
+- [x] `cc-mem log` — 直近N セッションの保存履歴を表示 → ADR-007
 - [ ] `cc-mem gc` — 古い・低スコアのメモリを削除
 - [ ] `cc-mem export` — JSON エクスポート
 
