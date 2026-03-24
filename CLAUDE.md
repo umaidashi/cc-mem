@@ -13,7 +13,7 @@ Claude Code の長期記憶システム。TypeScript + Bun + Ollama でローカ
 
 ```
 src/
-├── cli/          # CLI コマンド (save, search, stats)
+├── cli/          # CLI コマンド (save, search, import, recall, log, gc, export, stats)
 ├── db/           # SQLite スキーマ (schema.ts)
 ├── chunker/      # Q&A チャンク化 + テキストクリーニング
 ├── embedder/     # Ollama embedding API 連携
@@ -27,11 +27,19 @@ docs/adr/         # Architecture Decision Records
 ## Commands
 
 ```bash
-bun test              # 全テスト実行
-bun test tests/X.ts   # 個別テスト
-cc-mem save           # stdin から会話保存
-cc-mem search "query" # 記憶検索
-cc-mem stats          # 統計表示
+bun test                           # 全テスト実行
+bun test tests/X.ts                # 個別テスト
+cc-mem save                        # stdin から会話保存（Hook 自動）
+cc-mem search <query>              # 記憶検索（デフォルト: 現プロジェクト）
+cc-mem search --all <query>        # 全プロジェクト横断検索
+cc-mem search --context <query>    # 前後の会話つき検索
+cc-mem search --limit N <query>    # 件数指定
+cc-mem import                      # 一括取り込み（--dry-run, --project, --verbose）
+cc-mem recall                      # 直近3セッション概要（--last N, --all）
+cc-mem log                         # セッション履歴（--last N）
+cc-mem gc                          # 古いメモリ削除（--older-than, --session, --dry-run）
+cc-mem export                      # JSONエクスポート（--session）
+cc-mem stats                       # 統計表示
 ```
 
 ## Development Rules
@@ -48,5 +56,6 @@ cc-mem stats          # 統計表示
 |---|---|---|
 | `CC_MEM_OLLAMA_URL` | `http://localhost:11434` | Ollama URL |
 | `CC_MEM_EMBED_MODEL` | `nomic-embed-text` | Embedding model |
+| `CC_MEM_PROJECT` | CWD の basename | プロジェクトスコープ名 |
 | `CC_MEM_MIN_CHUNK_LENGTH` | `100` | 短文フィルタ閾値 |
 | `CC_MEM_DEDUP_THRESHOLD` | `0.95` | 重複排除閾値 |

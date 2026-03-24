@@ -14,11 +14,17 @@ cc-mem の設定方法をまとめたリファレンスです。
 
 ### 基本設定
 
-Stop Hook に cc-mem save を登録します。Claude Code がレスポンス生成を完了するたびに、会話内容が自動保存されます。
+SessionStart Hook に recall、Stop Hook に save を登録します。
 
 ```json
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "command": "cc-mem recall 2>/dev/null"
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
@@ -28,6 +34,13 @@ Stop Hook に cc-mem save を登録します。Claude Code がレスポンス生
   }
 }
 ```
+
+**各 Hook の役割:**
+
+| Hook | コマンド | 説明 |
+|---|---|---|
+| `SessionStart` | `cc-mem recall` | セッション開始時に直近3セッションの概要を自動表示 |
+| `Stop` | `cc-mem save` | レスポンス生成完了時に会話を自動保存 |
 
 **各フィールドの意味:**
 
@@ -40,30 +53,21 @@ Stop Hook に cc-mem save を登録します。Claude Code がレスポンス生
 
 - `$CLAUDE_CONVERSATION` -- Claude Code が自動的にセットする環境変数。セッションの会話内容が JSON 形式で格納される
 - `2>/dev/null` -- stderr を抑制（保存ログが Claude Code の出力に混ざるのを防ぐ）
-- `&` -- バックグラウンド実行（Claude Code の応答をブロックしない）
+- `&` -- バックグラウンド実行（Claude Code の応答をブロックしない。save のみ）
 
 ### 既存の Hook がある場合
 
-`settings.json` に既に他の Hook が設定されている場合は、`Stop` 配列に追加します。
+`settings.json` に既に他の Hook が設定されている場合は、各配列に追加します。
 
-**変更前:**
 ```json
 {
   "hooks": {
-    "Stop": [
+    "SessionStart": [
       {
         "matcher": "",
-        "command": "existing-command"
+        "command": "cc-mem recall 2>/dev/null"
       }
-    ]
-  }
-}
-```
-
-**変更後:**
-```json
-{
-  "hooks": {
+    ],
     "Stop": [
       {
         "matcher": "",
@@ -78,8 +82,6 @@ Stop Hook に cc-mem save を登録します。Claude Code がレスポンス生
 }
 ```
 
-Stop 配列内の Hook は順番に実行されます。cc-mem save はバックグラウンドで実行されるため、他の Hook に影響しません。
-
 ### hooks 以外の設定がある場合
 
 `settings.json` に hooks 以外のキーが既にある場合も、`hooks` キーを追加するだけです。
@@ -90,6 +92,12 @@ Stop 配列内の Hook は順番に実行されます。cc-mem save はバック
     "allow": ["Bash(*)"]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "command": "cc-mem recall 2>/dev/null"
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
@@ -149,6 +157,7 @@ cc-mem search "検索クエリ"
 |---|---|---|
 | `CC_MEM_OLLAMA_URL` | `http://localhost:11434` | Ollama の API エンドポイント |
 | `CC_MEM_EMBED_MODEL` | `nomic-embed-text` | embedding に使用する Ollama モデル |
+| `CC_MEM_PROJECT` | CWD の basename | プロジェクトスコープ名。search/recall のデフォルトスコープを上書き |
 | `CC_MEM_MIN_CHUNK_LENGTH` | `100` | 短文フィルタの閾値（Q+A の合計文字数がこの値未満のチャンクを除外） |
 | `CC_MEM_DEDUP_THRESHOLD` | `0.95` | 重複排除の閾値（既存メモリとのコサイン類似度がこの値以上なら保存をスキップ） |
 
@@ -162,6 +171,9 @@ export CC_MEM_OLLAMA_URL="http://localhost:11435"
 
 # 別の embedding モデルを使う場合
 export CC_MEM_EMBED_MODEL="mxbai-embed-large"
+
+# プロジェクト名を明示的に指定する場合（monorepo 等で CWD の basename が不適切なとき）
+export CC_MEM_PROJECT="my-service"
 
 # 短文フィルタの閾値を下げる（より短い会話も保存する）
 export CC_MEM_MIN_CHUNK_LENGTH=50
@@ -187,10 +199,26 @@ export CC_MEM_DEDUP_THRESHOLD=0.98
 ## CLI コマンド一覧
 
 ```bash
-cc-mem save              # stdin から会話ログを読んで保存
-cc-mem search <query>    # 過去の記憶を検索 (デフォルト5件)
-cc-mem search --limit N <query>  # 件数を指定して検索
-cc-mem stats             # 統計情報を表示
-cc-mem --help            # ヘルプを表示
-cc-mem --version         # バージョンを表示
+cc-mem save                        # stdin から会話保存（Stop Hook で自動実行）
+cc-mem search <query>              # 記憶検索（デフォルト: 現プロジェクト、5件）
+cc-mem search --all <query>        # 全プロジェクト横断検索
+cc-mem search --context <query>    # 前後の会話つき検索
+cc-mem search --limit N <query>    # 件数指定
+cc-mem import                      # 一括取り込み（~/.claude/projects/ から）
+cc-mem import --dry-run            # 取り込み件数の確認のみ
+cc-mem import --project <name>     # 特定プロジェクトのみ取り込み
+cc-mem recall                      # 直近3セッション概要（SessionStart Hook で自動実行）
+cc-mem recall --last N             # 表示セッション数を指定
+cc-mem recall --all                # 全プロジェクトのセッションを表示
+cc-mem log                         # セッション履歴一覧（デフォルト: 10件）
+cc-mem log --last N                # 表示件数を指定
+cc-mem gc                          # 古いメモリ削除（デフォルト: 90日以上）
+cc-mem gc --older-than 60d         # 日数指定
+cc-mem gc --session <id>           # 特定セッション削除
+cc-mem gc --dry-run                # 削除件数の確認のみ
+cc-mem export                      # JSON エクスポート
+cc-mem export --session <id>       # 特定セッションのみ
+cc-mem stats                       # 統計情報を表示
+cc-mem --help                      # ヘルプを表示
+cc-mem --version                   # バージョンを表示
 ```

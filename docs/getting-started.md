@@ -49,13 +49,33 @@ ollama serve
 
 > **Note:** Ollama が起動していなくても cc-mem は動作します。その場合、ベクトル検索が使えず FTS5（全文検索）のみになります。
 
-## 4. Claude Code の Hook を設定
+## 4. 過去のセッションログを取り込み（既存ユーザー向け）
 
-`~/.claude/settings.json` を編集して、Stop Hook を追加します。
+既に Claude Code を使っている場合、`~/.claude/projects/` に蓄積されたセッションログを一括取り込みできます。
+
+```bash
+# まずは件数を確認（実際には保存しない）
+cc-mem import --dry-run
+
+# 一括取り込みを実行
+cc-mem import
+```
+
+重複排除済みなので何度実行しても冪等です。特定プロジェクトだけ取り込みたい場合は `--project <name>` を指定できます。
+
+## 5. Claude Code の Hook を設定
+
+`~/.claude/settings.json` を編集して、SessionStart Hook（recall）と Stop Hook（save）を追加します。
 
 ```json
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "command": "cc-mem recall 2>/dev/null"
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
@@ -66,9 +86,12 @@ ollama serve
 }
 ```
 
-既に `settings.json` に他の設定がある場合は、`hooks.Stop` 配列に上記オブジェクトを追加してください。詳しくは [設定リファレンス](./configuration.md) を参照してください。
+- **SessionStart Hook:** セッション開始時に `cc-mem recall` を実行し、直近3セッションの概要を自動表示する
+- **Stop Hook:** セッション終了時に会話を自動保存する
 
-## 5. CLAUDE.md に検索方法を記載
+既に `settings.json` に他の設定がある場合は、各配列に上記オブジェクトを追加してください。詳しくは [設定リファレンス](./configuration.md) を参照してください。
+
+## 6. CLAUDE.md に検索方法を記載
 
 cc-mem を活用したいプロジェクトの `CLAUDE.md` に以下を追記します。
 
@@ -92,7 +115,7 @@ cc-mem search "検索クエリ"
 
 サンプルファイル `CLAUDE.md.example` がリポジトリに同梱されています。
 
-## 6. 動作確認
+## 7. 動作確認
 
 ### 保存テスト
 
