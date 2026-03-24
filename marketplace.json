@@ -1,0 +1,13 @@
+{
+  "plugins": [
+    {
+      "name": "cc-mem",
+      "source": {
+        "type": "github",
+        "repo": "umaidashi/cc-mem",
+        "path": "."
+      },
+      "version": "0.1.0"
+    }
+  ]
+}
