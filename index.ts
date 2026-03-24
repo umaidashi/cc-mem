@@ -44,6 +44,7 @@ function parseArgs(args: string[]): {
   project: string;
   verbose: boolean;
   withContext: boolean;
+  withRelated: boolean;
   olderThan: string;
   session: string;
   allProjects: boolean;
@@ -54,6 +55,7 @@ function parseArgs(args: string[]): {
   let project = "";
   let verbose = false;
   let withContext = false;
+  let withRelated = false;
   let olderThan = "";
   let session = "";
   let allProjects = false;
@@ -77,6 +79,8 @@ function parseArgs(args: string[]): {
       allProjects = true;
     } else if (arg === "--context") {
       withContext = true;
+    } else if (arg === "--related") {
+      withRelated = true;
     } else if (arg === "--older-than" && i + 1 < args.length) {
       olderThan = args[++i];
     } else if (arg === "--session" && i + 1 < args.length) {
@@ -88,10 +92,10 @@ function parseArgs(args: string[]): {
     }
   }
 
-  return { command, query: rest.join(" "), limit, dryRun, project, verbose, withContext, olderThan, session, allProjects };
+  return { command, query: rest.join(" "), limit, dryRun, project, verbose, withContext, withRelated, olderThan, session, allProjects };
 }
 
-const { command, query, limit, dryRun, project, verbose, withContext, olderThan, session, allProjects } = parseArgs(process.argv.slice(2));
+const { command, query, limit, dryRun, project, verbose, withContext, withRelated, olderThan, session, allProjects } = parseArgs(process.argv.slice(2));
 
 switch (command) {
   case "help":
@@ -106,7 +110,7 @@ switch (command) {
     break;
   case "search": {
     const searchProject = allProjects ? undefined : config.project;
-    await search(query, limit, withContext, searchProject);
+    await search(query, limit, withContext, searchProject, withRelated);
     break;
   }
   case "import": {

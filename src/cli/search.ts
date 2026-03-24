@@ -16,6 +16,7 @@ export async function search(
   limit: number = 5,
   withContext: boolean = false,
   project?: string,
+  withRelated: boolean = false,
 ): Promise<void> {
   if (!query || query.trim() === "") {
     console.error("クエリを指定してください");
@@ -26,6 +27,7 @@ export async function search(
   const results: SearchResult[] = await hybridSearch(db, query, limit, {
     withContext,
     project,
+    withRelated,
   });
 
   if (results.length === 0) {
@@ -64,6 +66,13 @@ export async function search(
 
     console.log(`**Q:** ${q}`);
     console.log(`**A:** ${a}`);
+
+    if (r.related) {
+      for (const rel of r.related) {
+        const relQ = truncate(rel.question, 60);
+        console.log(`  [related: ${rel.sharedKey}] Q: ${relQ} (shared: ${rel.sharedKeyCount} keys)`);
+      }
+    }
 
     if (r.context) {
       for (const ctx of r.context) {

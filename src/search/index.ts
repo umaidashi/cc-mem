@@ -13,6 +13,14 @@ export interface ContextItem {
   position: "before" | "after";
 }
 
+export interface RelatedMemory {
+  id: number;
+  question: string;
+  sessionId: string;
+  sharedKey: string;
+  sharedKeyCount: number;
+}
+
 export interface SearchResult {
   id: number;
   sessionId: string;
@@ -21,6 +29,7 @@ export interface SearchResult {
   score: number;
   createdAt: string;
   context?: ContextItem[];
+  related?: RelatedMemory[];
 }
 
 interface RankedId {
@@ -195,11 +204,44 @@ function timeDecay(createdAt: string): number {
 // Hybrid search (public API)
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Related memories
+// ---------------------------------------------------------------------------
+
+export function getRelatedMemories(db: Database, memoryId: number, limit: number = 3): RelatedMemory[] {
+  const rows = db.query<
+    { memory_id: number; question: string; session_id: string; key_value: string; shared_keys: number },
+    [number, number, number]
+  >(`
+    SELECT mk2.memory_id, m.question, m.session_id, mk1.key_value,
+           COUNT(*) as shared_keys
+    FROM memory_keys mk1
+    JOIN memory_keys mk2 ON mk1.key_value = mk2.key_value
+    JOIN memories m ON m.id = mk2.memory_id
+    WHERE mk1.memory_id = ? AND mk2.memory_id != ?
+    GROUP BY mk2.memory_id
+    ORDER BY shared_keys DESC
+    LIMIT ?
+  `).all(memoryId, memoryId, limit);
+
+  return rows.map(r => ({
+    id: r.memory_id,
+    question: r.question,
+    sessionId: r.session_id,
+    sharedKey: r.key_value,
+    sharedKeyCount: r.shared_keys,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Hybrid search (public API)
+// ---------------------------------------------------------------------------
+
 export async function hybridSearch(
   db: Database,
   query: string,
   limit: number = 5,
-  options?: { withContext?: boolean; contextSize?: number; project?: string },
+  options?: { withContext?: boolean; contextSize?: number; project?: string; withRelated?: boolean },
 ): Promise<SearchResult[]> {
   const project = options?.project;
 
@@ -305,6 +347,15 @@ export async function hybridSearch(
           position: "after" as const,
         })),
       ];
+    }
+  }
+
+  if (options?.withRelated) {
+    for (const result of finalResults) {
+      const related = getRelatedMemories(db, result.id);
+      if (related.length > 0) {
+        result.related = related;
+      }
     }
   }
 
