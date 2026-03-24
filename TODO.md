@@ -27,8 +27,8 @@
 
 - [x] `cc-mem import` — 既存セッションログの一括取り込み → ADR-005
 - [x] `cc-mem log` — 直近N セッションの保存履歴を表示 → ADR-007
-- [ ] `cc-mem gc` — 古い・低スコアのメモリを削除
-- [ ] `cc-mem export` — JSON エクスポート
+- [x] `cc-mem gc` — 古い・低スコアのメモリを削除 → ADR-008
+- [x] `cc-mem export` — JSON エクスポート → ADR-009
 
 ## P3: 野心的な方向性
 

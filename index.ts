@@ -4,6 +4,8 @@ import { save } from "./src/cli/save";
 import { search } from "./src/cli/search";
 import { importSessions } from "./src/cli/import";
 import { log } from "./src/cli/log";
+import { runGc } from "./src/cli/gc";
+import { exportCmd } from "./src/cli/export";
 
 const VERSION = "0.1.0";
 const NAME = "cc-mem";
@@ -15,6 +17,8 @@ Usage:
   ${NAME} search <query>    Search past memories
   ${NAME} import              Import all session logs
   ${NAME} log [--last N]     Show recent session logs (default: 10)
+  ${NAME} gc                  Delete old memories (default: 90 days)
+  ${NAME} export             Export memories as JSON
   ${NAME} stats             Show memory statistics
 
 Options:
@@ -41,6 +45,8 @@ function parseArgs(args: string[]): {
   project: string;
   verbose: boolean;
   withContext: boolean;
+  olderThan: string;
+  session: string;
 } {
   let command = "";
   let limit = 5;
@@ -49,6 +55,8 @@ function parseArgs(args: string[]): {
   let project = "";
   let verbose = false;
   let withContext = false;
+  let olderThan = "";
+  let session = "";
   const rest: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
@@ -69,6 +77,10 @@ function parseArgs(args: string[]): {
       verbose = true;
     } else if (arg === "--context") {
       withContext = true;
+    } else if (arg === "--older-than" && i + 1 < args.length) {
+      olderThan = args[++i];
+    } else if (arg === "--session" && i + 1 < args.length) {
+      session = args[++i];
     } else if (!command) {
       command = arg;
     } else {
@@ -76,10 +88,10 @@ function parseArgs(args: string[]): {
     }
   }
 
-  return { command, query: rest.join(" "), limit, last, dryRun, project, verbose, withContext };
+  return { command, query: rest.join(" "), limit, last, dryRun, project, verbose, withContext, olderThan, session };
 }
 
-const { command, query, limit, last, dryRun, project, verbose, withContext } = parseArgs(process.argv.slice(2));
+const { command, query, limit, last, dryRun, project, verbose, withContext, olderThan, session } = parseArgs(process.argv.slice(2));
 
 switch (command) {
   case "help":
@@ -114,6 +126,27 @@ switch (command) {
   }
   case "log":
     await log(last);
+    break;
+  case "gc": {
+    const { initDb } = await import("./src/db/schema");
+    const db = initDb();
+    const olderThanDays = olderThan
+      ? parseInt(olderThan.replace(/d$/i, ""), 10)
+      : undefined;
+    const result = runGc(db, {
+      olderThanDays,
+      dryRun,
+      sessionId: session || undefined,
+    });
+    if (dryRun) {
+      console.log(`[dry-run] Would delete ${result.deleted} memories (${result.remaining} remaining)`);
+    } else {
+      console.log(`Deleted ${result.deleted} memories (${result.remaining} remaining)`);
+    }
+    break;
+  }
+  case "export":
+    await exportCmd(session || undefined);
     break;
   case "stats":
     await (await import("./src/cli/stats")).stats();
