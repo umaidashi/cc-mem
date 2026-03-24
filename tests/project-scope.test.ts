@@ -2,7 +2,6 @@ import { describe, test, expect, beforeEach } from "bun:test";
 import type { Database } from "bun:sqlite";
 import { initDb } from "../src/db/schema";
 import { hybridSearch, type SearchResult } from "../src/search";
-import { getRecentSessions } from "../src/cli/recall";
 import { embed, vectorToBuffer } from "../src/embedder";
 
 // ---------------------------------------------------------------------------
@@ -99,36 +98,6 @@ describe("ADR-011: プロジェクトスコープ", () => {
     const info = db.query("PRAGMA table_info(memories)").all();
     const projectCol = (info as any[]).find((c: any) => c.name === "project");
     expect(projectCol).toBeDefined();
-  });
-
-  // -------------------------------------------------------------------------
-  // recall のプロジェクトスコープ (Ollama 不要)
-  // -------------------------------------------------------------------------
-
-  describe("recall のプロジェクトスコープ", () => {
-    beforeEach(() => {
-      // stock-api: 3セッション
-      insertMemory(db, "stock-sess-1", "在庫一覧の取得方法は？", "GET /api/v1/inventory を使用します。", "stock-api");
-      insertMemory(db, "stock-sess-2", "在庫の更新方法は？", "PUT /api/v1/inventory/:id を使用します。", "stock-api");
-      insertMemory(db, "stock-sess-3", "在庫の削除方法は？", "DELETE /api/v1/inventory/:id を使用します。", "stock-api");
-
-      // keiba: 2セッション
-      insertMemory(db, "keiba-sess-1", "オッズの取得方法は？", "GET /api/v1/odds/:race_id を使用します。", "keiba");
-      insertMemory(db, "keiba-sess-2", "血統情報の取得方法は？", "GET /api/v1/pedigree/:horse_id を使用します。", "keiba");
-    });
-
-    test("recall でプロジェクト指定 → そのプロジェクトのセッションのみ返る", () => {
-      const sessions = getRecentSessions(db, 10, "stock-api");
-      expect(sessions.length).toBe(3);
-      for (const s of sessions) {
-        expect(s.sessionId).toMatch(/^stock-sess-/);
-      }
-    });
-
-    test("recall --all (project 未指定) → 全セッション返る", () => {
-      const sessions = getRecentSessions(db, 10);
-      expect(sessions.length).toBe(5);
-    });
   });
 
   // -------------------------------------------------------------------------

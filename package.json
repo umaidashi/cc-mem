@@ -10,7 +10,9 @@
   "scripts": {
     "save": "bun run index.ts save",
     "search": "bun run index.ts search",
+    "import": "bun run index.ts import",
     "stats": "bun run index.ts stats",
+    "gc": "bun run index.ts gc",
     "test": "bun test tests/",
     "test:filter": "bun test tests/filter.test.ts",
     "test:dedup": "bun test tests/dedup.test.ts",

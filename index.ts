@@ -3,10 +3,7 @@
 import { save } from "./src/cli/save";
 import { search } from "./src/cli/search";
 import { importSessions } from "./src/cli/import";
-import { log } from "./src/cli/log";
 import { runGc } from "./src/cli/gc";
-import { exportCmd } from "./src/cli/export";
-import { recall } from "./src/cli/recall";
 import { config } from "./src/config";
 
 const VERSION = "0.1.0";
@@ -17,13 +14,10 @@ const HELP = `${NAME} v${VERSION} — Long-term memory for Claude Code
 Usage:
   ${NAME} save              Save conversation from stdin
   ${NAME} search <query>    Search past memories (current project)
-  ${NAME} search --all <q>  Search all projects
-  ${NAME} import              Import all session logs
-  ${NAME} recall [--last N]   Show recent session summaries (current project)
-  ${NAME} recall --all        Show all projects' sessions
-  ${NAME} log [--last N]     Show recent session logs (default: 10)
-  ${NAME} gc                  Delete old memories (default: 90 days)
-  ${NAME} export             Export memories as JSON
+  ${NAME} search --all      Search all projects
+  ${NAME} search --context  Show surrounding Q&A context
+  ${NAME} import            Import all session logs
+  ${NAME} gc                Delete old memories (default: 90 days)
   ${NAME} stats             Show memory statistics
 
 Options:
@@ -33,8 +27,8 @@ Options:
 Examples:
   echo "$CLAUDE_CONVERSATION" | ${NAME} save
   ${NAME} search "SQLite 全文検索"
-  ${NAME} search --limit 10 "設計判断"
-  ${NAME} search --context "SQLite FTS5"
+  ${NAME} search --context --all "設計判断"
+  ${NAME} import --dry-run
 
 Environment:
   CC_MEM_OLLAMA_URL        Ollama URL (default: http://localhost:11434)
@@ -46,7 +40,6 @@ function parseArgs(args: string[]): {
   command: string;
   query: string;
   limit: number;
-  last: number;
   dryRun: boolean;
   project: string;
   verbose: boolean;
@@ -57,7 +50,6 @@ function parseArgs(args: string[]): {
 } {
   let command = "";
   let limit = 5;
-  let last = 10;
   let dryRun = false;
   let project = "";
   let verbose = false;
@@ -75,8 +67,6 @@ function parseArgs(args: string[]): {
       command = "version";
     } else if (arg === "--limit" && i + 1 < args.length) {
       limit = parseInt(args[++i], 10) || 5;
-    } else if (arg === "--last" && i + 1 < args.length) {
-      last = parseInt(args[++i], 10) || 10;
     } else if (arg === "--dry-run") {
       dryRun = true;
     } else if (arg === "--project" && i + 1 < args.length) {
@@ -98,10 +88,10 @@ function parseArgs(args: string[]): {
     }
   }
 
-  return { command, query: rest.join(" "), limit, last, dryRun, project, verbose, withContext, olderThan, session, allProjects };
+  return { command, query: rest.join(" "), limit, dryRun, project, verbose, withContext, olderThan, session, allProjects };
 }
 
-const { command, query, limit, last, dryRun, project, verbose, withContext, olderThan, session, allProjects } = parseArgs(process.argv.slice(2));
+const { command, query, limit, dryRun, project, verbose, withContext, olderThan, session, allProjects } = parseArgs(process.argv.slice(2));
 
 switch (command) {
   case "help":
@@ -136,16 +126,6 @@ switch (command) {
     console.error(`Total duplicates: ${result.totalDuplicates}`);
     break;
   }
-  case "recall": {
-    // --last が明示指定されていなければ recall のデフォルト(3)を使う
-    const hasLast = process.argv.includes("--last");
-    const recallProject = allProjects ? undefined : config.project;
-    await recall(hasLast ? last : undefined, recallProject);
-    break;
-  }
-  case "log":
-    await log(last);
-    break;
   case "gc": {
     const { initDb } = await import("./src/db/schema");
     const db = initDb();
@@ -164,9 +144,6 @@ switch (command) {
     }
     break;
   }
-  case "export":
-    await exportCmd(session || undefined);
-    break;
   case "stats":
     await (await import("./src/cli/stats")).stats();
     break;
