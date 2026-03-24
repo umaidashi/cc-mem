@@ -33,19 +33,24 @@ export async function search(
     return;
   }
 
+  // RRF の理論最大値で正規化（both rank 1, 0 days old）
+  const maxRrfScore = 2 / (60 + 1); // ≈ 0.0328
+  const topScore = results[0]?.score ?? 0;
+  const normalizer = topScore > 0 ? Math.max(topScore, maxRrfScore) : 1;
+
   console.log(`## Memory Search Results (${results.length}件)\n`);
 
   for (let i = 0; i < results.length; i++) {
     const r = results[i];
     const rank = i + 1;
     const date = formatDate(r.createdAt);
-    const score = r.score.toFixed(4);
+    const relevance = Math.round((r.score / normalizer) * 100);
     const q = truncate(r.question, 100);
     const a = truncate(r.answer, 200);
 
     console.log("---");
     console.log(
-      `### #${rank} [score: ${score}] (${date}) session: ${r.sessionId}`,
+      `### #${rank} [${relevance}%] (${date}) session: ${r.sessionId}`,
     );
 
     if (r.context) {
