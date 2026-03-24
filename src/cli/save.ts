@@ -1,5 +1,6 @@
 import { initDb } from "../db/schema";
 import { processSave } from "../pipeline";
+import { config } from "../config";
 
 function generateSessionId(): string {
   const now = new Date();
@@ -31,7 +32,7 @@ export async function save(): Promise<void> {
   const db = initDb();
 
   // 4. パイプライン実行
-  const result = await processSave(input, db, sessionId);
+  const result = await processSave(input, db, sessionId, config.project);
 
   // 5. stderr にログ出力
   if (result.embeddingError) {

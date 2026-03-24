@@ -14,17 +14,31 @@ function truncate(text: string, maxLen: number = 60): string {
   return text.slice(0, maxLen) + "...";
 }
 
-export function getRecentSessions(db: Database, limit: number = 3): RecallSession[] {
-  const rows = db
-    .query(
-      `SELECT session_id, COUNT(*) as cnt, MAX(created_at) as latest,
+export function getRecentSessions(db: Database, limit: number = 3, project?: string): RecallSession[] {
+  const whereClause = project
+    ? `WHERE project = ? OR project = ''`
+    : ``;
+  const params = project ? [limit, project] : [limit];
+
+  // project フィルタ付きの場合は CTE で先にフィルタしてから GROUP BY
+  const sql = project
+    ? `SELECT session_id, COUNT(*) as cnt, MAX(created_at) as latest,
+              MIN(id) as first_id, MAX(id) as last_id
+       FROM memories
+       WHERE project = ? OR project = ''
+       GROUP BY session_id
+       ORDER BY latest DESC
+       LIMIT ?`
+    : `SELECT session_id, COUNT(*) as cnt, MAX(created_at) as latest,
               MIN(id) as first_id, MAX(id) as last_id
        FROM memories
        GROUP BY session_id
        ORDER BY latest DESC
-       LIMIT ?`,
-    )
-    .all(limit) as Array<{
+       LIMIT ?`;
+
+  const rows = (project
+    ? db.query(sql).all(project, limit)
+    : db.query(sql).all(limit)) as Array<{
     session_id: string;
     cnt: number;
     latest: string;
@@ -50,9 +64,9 @@ export function getRecentSessions(db: Database, limit: number = 3): RecallSessio
   });
 }
 
-export async function recall(limit: number = 3): Promise<void> {
+export async function recall(limit: number = 3, project?: string): Promise<void> {
   const db = initDb();
-  const sessions = getRecentSessions(db, limit);
+  const sessions = getRecentSessions(db, limit, project);
 
   if (sessions.length === 0) return;
 

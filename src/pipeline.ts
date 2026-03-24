@@ -17,6 +17,7 @@ export async function processSave(
   input: string,
   db: Database,
   sessionId: string,
+  project?: string,
 ): Promise<SaveResult> {
   // 1. chunkTranscript() でQ&Aチャンクに分割
   const rawChunks = chunkTranscript(input);
@@ -79,13 +80,15 @@ export async function processSave(
 
   // 5. トランザクション内で全チャンクを INSERT
   const insert = db.prepare(
-    "INSERT INTO memories (session_id, question, answer, embedding) VALUES (?, ?, ?, ?)",
+    "INSERT INTO memories (session_id, question, answer, embedding, project) VALUES (?, ?, ?, ?, ?)",
   );
+
+  const proj = project ?? "";
 
   const insertAll = db.transaction(() => {
     for (const { chunk, embedding } of dedupResult.unique) {
       const embeddingBuf = embedding ? vectorToBuffer(embedding) : null;
-      insert.run(sessionId, chunk.question, chunk.answer, embeddingBuf);
+      insert.run(sessionId, chunk.question, chunk.answer, embeddingBuf, proj);
     }
   });
 

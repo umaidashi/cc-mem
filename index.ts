@@ -7,6 +7,7 @@ import { log } from "./src/cli/log";
 import { runGc } from "./src/cli/gc";
 import { exportCmd } from "./src/cli/export";
 import { recall } from "./src/cli/recall";
+import { config } from "./src/config";
 
 const VERSION = "0.1.0";
 const NAME = "cc-mem";
@@ -15,9 +16,11 @@ const HELP = `${NAME} v${VERSION} — Long-term memory for Claude Code
 
 Usage:
   ${NAME} save              Save conversation from stdin
-  ${NAME} search <query>    Search past memories
+  ${NAME} search <query>    Search past memories (current project)
+  ${NAME} search --all <q>  Search all projects
   ${NAME} import              Import all session logs
-  ${NAME} recall [--last N]   Show recent session summaries (default: 3)
+  ${NAME} recall [--last N]   Show recent session summaries (current project)
+  ${NAME} recall --all        Show all projects' sessions
   ${NAME} log [--last N]     Show recent session logs (default: 10)
   ${NAME} gc                  Delete old memories (default: 90 days)
   ${NAME} export             Export memories as JSON
@@ -36,6 +39,7 @@ Examples:
 Environment:
   CC_MEM_OLLAMA_URL        Ollama URL (default: http://localhost:11434)
   CC_MEM_EMBED_MODEL       Embedding model (default: nomic-embed-text)
+  CC_MEM_PROJECT           Project scope (default: basename of cwd)
 `;
 
 function parseArgs(args: string[]): {
@@ -49,6 +53,7 @@ function parseArgs(args: string[]): {
   withContext: boolean;
   olderThan: string;
   session: string;
+  allProjects: boolean;
 } {
   let command = "";
   let limit = 5;
@@ -59,6 +64,7 @@ function parseArgs(args: string[]): {
   let withContext = false;
   let olderThan = "";
   let session = "";
+  let allProjects = false;
   const rest: string[] = [];
 
   for (let i = 0; i < args.length; i++) {
@@ -77,6 +83,8 @@ function parseArgs(args: string[]): {
       project = args[++i];
     } else if (arg === "--verbose") {
       verbose = true;
+    } else if (arg === "--all") {
+      allProjects = true;
     } else if (arg === "--context") {
       withContext = true;
     } else if (arg === "--older-than" && i + 1 < args.length) {
@@ -90,10 +98,10 @@ function parseArgs(args: string[]): {
     }
   }
 
-  return { command, query: rest.join(" "), limit, last, dryRun, project, verbose, withContext, olderThan, session };
+  return { command, query: rest.join(" "), limit, last, dryRun, project, verbose, withContext, olderThan, session, allProjects };
 }
 
-const { command, query, limit, last, dryRun, project, verbose, withContext, olderThan, session } = parseArgs(process.argv.slice(2));
+const { command, query, limit, last, dryRun, project, verbose, withContext, olderThan, session, allProjects } = parseArgs(process.argv.slice(2));
 
 switch (command) {
   case "help":
@@ -106,9 +114,11 @@ switch (command) {
   case "save":
     await save();
     break;
-  case "search":
-    await search(query, limit, withContext);
+  case "search": {
+    const searchProject = allProjects ? undefined : config.project;
+    await search(query, limit, withContext, searchProject);
     break;
+  }
   case "import": {
     const { homedir } = await import("node:os");
     const { join } = await import("node:path");
@@ -129,7 +139,8 @@ switch (command) {
   case "recall": {
     // --last が明示指定されていなければ recall のデフォルト(3)を使う
     const hasLast = process.argv.includes("--last");
-    await recall(hasLast ? last : undefined);
+    const recallProject = allProjects ? undefined : config.project;
+    await recall(hasLast ? last : undefined, recallProject);
     break;
   }
   case "log":

@@ -23,9 +23,17 @@ export function initDb(dbPath: string = config.dbPath ?? DEFAULT_DB_PATH): Datab
       question   TEXT NOT NULL,
       answer     TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      embedding  BLOB
+      embedding  BLOB,
+      project    TEXT NOT NULL DEFAULT ''
     )
   `);
+
+  // 既存 DB 用マイグレーション: project カラム追加
+  try {
+    db.run(`ALTER TABLE memories ADD COLUMN project TEXT NOT NULL DEFAULT ''`);
+  } catch {
+    // カラムが既に存在する場合はエラーを無視
+  }
 
   // FTS5 全文検索テーブル (trigram)
   db.run(`

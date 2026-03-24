@@ -1,5 +1,6 @@
 import { initDb } from "../db/schema";
 import { hybridSearch, type SearchResult } from "../search";
+import { config } from "../config";
 
 function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
@@ -14,6 +15,7 @@ export async function search(
   query: string,
   limit: number = 5,
   withContext: boolean = false,
+  project?: string,
 ): Promise<void> {
   if (!query || query.trim() === "") {
     console.error("クエリを指定してください");
@@ -23,6 +25,7 @@ export async function search(
   const db = initDb();
   const results: SearchResult[] = await hybridSearch(db, query, limit, {
     withContext,
+    project,
   });
 
   if (results.length === 0) {

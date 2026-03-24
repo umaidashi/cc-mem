@@ -67,7 +67,7 @@ function escapeFtsQuery(query: string): string {
     .join(" ");
 }
 
-function ftsSearch(db: Database, query: string, limit: number): RankedId[] {
+function ftsSearch(db: Database, query: string, limit: number, project?: string): RankedId[] {
   if (query.trim().length < MIN_FTS_QUERY_LENGTH) {
     return [];
   }
@@ -76,15 +76,29 @@ function ftsSearch(db: Database, query: string, limit: number): RankedId[] {
   if (escaped.length === 0) return [];
 
   try {
-    const rows = db
-      .query<{ rowid: number; rank: number }, [string]>(
-        `SELECT rowid, rank
-         FROM memories_fts
-         WHERE memories_fts MATCH ?
-         ORDER BY rank
-         LIMIT ?`,
-      )
-      .all(escaped);
+    let rows: { rowid: number; rank: number }[];
+
+    if (project) {
+      // project フィルタ付きの FTS 検索
+      rows = db
+        .query<{ rowid: number; rank: number }, [string, string]>(
+          `SELECT m.id as rowid, f.rank
+           FROM memories_fts f
+           JOIN memories m ON m.id = f.rowid
+           WHERE memories_fts MATCH ? AND (m.project = ? OR m.project = '')
+           ORDER BY f.rank`,
+        )
+        .all(escaped, project);
+    } else {
+      rows = db
+        .query<{ rowid: number; rank: number }, [string]>(
+          `SELECT rowid, rank
+           FROM memories_fts
+           WHERE memories_fts MATCH ?
+           ORDER BY rank`,
+        )
+        .all(escaped);
+    }
 
     // BM25 rank from FTS5 is negative (lower = better). We just need ordinal ranks.
     // The query already orders by rank, so the array index gives us 1-based rank.
@@ -108,14 +122,25 @@ async function vectorSearch(
   db: Database,
   query: string,
   limit: number,
+  project?: string,
 ): Promise<RankedId[]> {
   const queryVec = await embed(query);
 
-  const rows = db
-    .query<{ id: number; embedding: Buffer }, []>(
-      `SELECT id, embedding FROM memories WHERE embedding IS NOT NULL`,
-    )
-    .all();
+  const whereClause = project
+    ? `WHERE embedding IS NOT NULL AND (project = ? OR project = '')`
+    : `WHERE embedding IS NOT NULL`;
+
+  const rows = project
+    ? db
+        .query<{ id: number; embedding: Buffer }, [string]>(
+          `SELECT id, embedding FROM memories ${whereClause}`,
+        )
+        .all(project)
+    : db
+        .query<{ id: number; embedding: Buffer }, []>(
+          `SELECT id, embedding FROM memories ${whereClause}`,
+        )
+        .all();
 
   const scored: { id: number; similarity: number }[] = [];
 
@@ -173,14 +198,16 @@ export async function hybridSearch(
   db: Database,
   query: string,
   limit: number = 5,
-  options?: { withContext?: boolean; contextSize?: number },
+  options?: { withContext?: boolean; contextSize?: number; project?: string },
 ): Promise<SearchResult[]> {
+  const project = options?.project;
+
   // Generous candidate pool for each retriever
   const candidateLimit = limit * 10;
 
   // Run FTS and vector search
-  const ftsResults = ftsSearch(db, query, candidateLimit);
-  const vecResults = await vectorSearch(db, query, candidateLimit);
+  const ftsResults = ftsSearch(db, query, candidateLimit, project);
+  const vecResults = await vectorSearch(db, query, candidateLimit, project);
 
   // Merge with RRF
   const rrfScores = reciprocalRankFusion(ftsResults, vecResults);
