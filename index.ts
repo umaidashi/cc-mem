@@ -6,6 +6,7 @@ import { importSessions } from "./src/cli/import";
 import { log } from "./src/cli/log";
 import { runGc } from "./src/cli/gc";
 import { exportCmd } from "./src/cli/export";
+import { recall } from "./src/cli/recall";
 
 const VERSION = "0.1.0";
 const NAME = "cc-mem";
@@ -16,6 +17,7 @@ Usage:
   ${NAME} save              Save conversation from stdin
   ${NAME} search <query>    Search past memories
   ${NAME} import              Import all session logs
+  ${NAME} recall [--last N]   Show recent session summaries (default: 3)
   ${NAME} log [--last N]     Show recent session logs (default: 10)
   ${NAME} gc                  Delete old memories (default: 90 days)
   ${NAME} export             Export memories as JSON
@@ -122,6 +124,12 @@ switch (command) {
     console.error(`Total saved: ${result.totalSaved}`);
     console.error(`Total filtered: ${result.totalFiltered}`);
     console.error(`Total duplicates: ${result.totalDuplicates}`);
+    break;
+  }
+  case "recall": {
+    // --last が明示指定されていなければ recall のデフォルト(3)を使う
+    const hasLast = process.argv.includes("--last");
+    await recall(hasLast ? last : undefined);
     break;
   }
   case "log":
