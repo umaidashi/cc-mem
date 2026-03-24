@@ -21,6 +21,7 @@
     "setup": "ollama pull nomic-embed-text && bun link",
     "typecheck": "bunx tsc --noEmit"
   },
+  "license": "MIT",
   "devDependencies": {
     "@types/bun": "latest"
   },
