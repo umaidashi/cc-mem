@@ -9,7 +9,14 @@
   },
   "scripts": {
     "save": "bun run index.ts save",
-    "search": "bun run index.ts search"
+    "search": "bun run index.ts search",
+    "stats": "bun run index.ts stats",
+    "test": "bun test tests/",
+    "test:filter": "bun test tests/filter.test.ts",
+    "test:dedup": "bun test tests/dedup.test.ts",
+    "test:cleaning": "bun test tests/cleaning.test.ts",
+    "setup": "ollama pull nomic-embed-text && bun link",
+    "typecheck": "bunx tsc --noEmit"
   },
   "devDependencies": {
     "@types/bun": "latest"

@@ -149,6 +149,8 @@ cc-mem search "検索クエリ"
 |---|---|---|
 | `CC_MEM_OLLAMA_URL` | `http://localhost:11434` | Ollama の API エンドポイント |
 | `CC_MEM_EMBED_MODEL` | `nomic-embed-text` | embedding に使用する Ollama モデル |
+| `CC_MEM_MIN_CHUNK_LENGTH` | `100` | 短文フィルタの閾値（Q+A の合計文字数がこの値未満のチャンクを除外） |
+| `CC_MEM_DEDUP_THRESHOLD` | `0.95` | 重複排除の閾値（既存メモリとのコサイン類似度がこの値以上なら保存をスキップ） |
 
 ### 環境変数の設定例
 
@@ -160,6 +162,12 @@ export CC_MEM_OLLAMA_URL="http://localhost:11435"
 
 # 別の embedding モデルを使う場合
 export CC_MEM_EMBED_MODEL="mxbai-embed-large"
+
+# 短文フィルタの閾値を下げる（より短い会話も保存する）
+export CC_MEM_MIN_CHUNK_LENGTH=50
+
+# 重複排除を厳しくする（より多くのチャンクを保存する）
+export CC_MEM_DEDUP_THRESHOLD=0.98
 ```
 
 > **Note:** embedding モデルを変更した場合、既存のベクトルとの互換性はありません。既存データの検索精度が低下する可能性があります。

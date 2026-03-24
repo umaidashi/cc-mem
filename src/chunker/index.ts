@@ -10,6 +10,21 @@ interface TranscriptLine {
   };
 }
 
+export function cleanText(text: string): string {
+  // 1. Remove multi-line XML blocks: <tag-name>...</tag-name>
+  let cleaned = text.replace(/<([a-z][-a-z]*?)>[\s\S]*?<\/\1>/g, "");
+  // Remove self-closing tags: <tag-name />
+  cleaned = cleaned.replace(/<[a-z][-a-z]*?\s*\/>/g, "");
+
+  // 2. Remove [Request interrupted by user] and variants
+  cleaned = cleaned.replace(/\[Request interrupted by user[^\]]*\]/g, "");
+
+  // 3. Trim and collapse consecutive blank lines into a single newline
+  cleaned = cleaned.trim().replace(/\n{2,}/g, "\n");
+
+  return cleaned;
+}
+
 function extractText(content: string | Array<{ type: string; text?: string }>): string {
   if (typeof content === "string") {
     return content;
@@ -42,10 +57,12 @@ export function chunkTranscript(jsonlContent: string): QAChunk[] {
 
     if (parsed.type === "system" || !parsed.message?.content) continue;
 
-    if (parsed.type === "human" || parsed.type === "assistant") {
-      const text = extractText(parsed.message.content);
+    const type = parsed.type === "user" ? "human" : parsed.type;
+
+    if (type === "human" || type === "assistant") {
+      const text = cleanText(extractText(parsed.message.content));
       if (text.trim()) {
-        messages.push({ role: parsed.type, text: text.trim() });
+        messages.push({ role: type, text: text.trim() });
       }
     }
   }
