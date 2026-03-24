@@ -1,0 +1,188 @@
+# 設定リファレンス
+
+cc-mem の設定方法をまとめたリファレンスです。
+
+---
+
+## Claude Code Hook の設定
+
+### settings.json の場所
+
+```
+~/.claude/settings.json
+```
+
+### 基本設定
+
+Stop Hook に cc-mem save を登録します。Claude Code がレスポンス生成を完了するたびに、会話内容が自動保存されます。
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "command": "echo \"$CLAUDE_CONVERSATION\" | cc-mem save 2>/dev/null &"
+      }
+    ]
+  }
+}
+```
+
+**各フィールドの意味:**
+
+| フィールド | 説明 |
+|---|---|
+| `matcher` | 空文字列 = 全てのレスポンスで発火。正規表現でフィルタも可能 |
+| `command` | 実行されるシェルコマンド |
+
+**コマンドのポイント:**
+
+- `$CLAUDE_CONVERSATION` -- Claude Code が自動的にセットする環境変数。セッションの会話内容が JSON 形式で格納される
+- `2>/dev/null` -- stderr を抑制（保存ログが Claude Code の出力に混ざるのを防ぐ）
+- `&` -- バックグラウンド実行（Claude Code の応答をブロックしない）
+
+### 既存の Hook がある場合
+
+`settings.json` に既に他の Hook が設定されている場合は、`Stop` 配列に追加します。
+
+**変更前:**
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "command": "existing-command"
+      }
+    ]
+  }
+}
+```
+
+**変更後:**
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "command": "existing-command"
+      },
+      {
+        "matcher": "",
+        "command": "echo \"$CLAUDE_CONVERSATION\" | cc-mem save 2>/dev/null &"
+      }
+    ]
+  }
+}
+```
+
+Stop 配列内の Hook は順番に実行されます。cc-mem save はバックグラウンドで実行されるため、他の Hook に影響しません。
+
+### hooks 以外の設定がある場合
+
+`settings.json` に hooks 以外のキーが既にある場合も、`hooks` キーを追加するだけです。
+
+```json
+{
+  "permissions": {
+    "allow": ["Bash(*)"]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "command": "echo \"$CLAUDE_CONVERSATION\" | cc-mem save 2>/dev/null &"
+      }
+    ]
+  }
+}
+```
+
+---
+
+## CLAUDE.md の設定
+
+各プロジェクトの `CLAUDE.md` に cc-mem の使い方を記載すると、Claude Code が自律的に過去の記憶を検索するようになります。
+
+### 推奨テンプレート
+
+リポジトリに同梱されている `CLAUDE.md.example` をベースに記載してください。
+
+```markdown
+## Long-term Memory (cc-mem)
+
+このプロジェクトには長期記憶システム cc-mem が導入されています。
+
+### 過去の記憶を検索する
+過去のセッションで議論した内容を思い出す必要がある場合:
+```bash
+cc-mem search "検索クエリ"
+```
+
+- 設計判断の経緯を思い出したいとき
+- 以前却下した案の理由を確認したいとき
+- 過去の議論の文脈を参照したいとき
+
+積極的に活用してください。
+```
+
+### 記載のポイント
+
+- **具体的なユースケースを書く** -- 「いつ検索すべきか」を明示することで、Claude Code が適切なタイミングで記憶を参照する
+- **「積極的に活用してください」と促す** -- 明示的に指示しないと、Claude Code は cc-mem を使わない傾向がある
+- **プロジェクト固有の文脈を追加する** -- 例えば「このプロジェクトのアーキテクチャ決定は cc-mem に記録されています」など
+
+### グローバル vs プロジェクトローカル
+
+| ファイル | スコープ | 用途 |
+|---|---|---|
+| `~/.claude/CLAUDE.md` | 全プロジェクト共通 | 全プロジェクトで cc-mem を使いたい場合 |
+| `{project}/CLAUDE.md` | プロジェクト固有 | 特定のプロジェクトだけで使いたい場合 |
+
+---
+
+## 環境変数
+
+| 変数名 | デフォルト値 | 説明 |
+|---|---|---|
+| `CC_MEM_OLLAMA_URL` | `http://localhost:11434` | Ollama の API エンドポイント |
+| `CC_MEM_EMBED_MODEL` | `nomic-embed-text` | embedding に使用する Ollama モデル |
+
+### 環境変数の設定例
+
+シェルの設定ファイル (`~/.zshrc` など) に追記します。
+
+```bash
+# Ollama を別ポートで起動している場合
+export CC_MEM_OLLAMA_URL="http://localhost:11435"
+
+# 別の embedding モデルを使う場合
+export CC_MEM_EMBED_MODEL="mxbai-embed-large"
+```
+
+> **Note:** embedding モデルを変更した場合、既存のベクトルとの互換性はありません。既存データの検索精度が低下する可能性があります。
+
+---
+
+## データベースの場所
+
+```
+~/.cc-mem/memory.db
+```
+
+データベースの場所は現時点では固定です。初回実行時に `~/.cc-mem/` ディレクトリとデータベースファイルが自動作成されます。
+
+---
+
+## CLI コマンド一覧
+
+```bash
+cc-mem save              # stdin から会話ログを読んで保存
+cc-mem search <query>    # 過去の記憶を検索 (デフォルト5件)
+cc-mem search --limit N <query>  # 件数を指定して検索
+cc-mem stats             # 統計情報を表示
+cc-mem --help            # ヘルプを表示
+cc-mem --version         # バージョンを表示
+```

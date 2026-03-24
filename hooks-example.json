@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "command": "echo \"$CLAUDE_CONVERSATION\" | cc-mem save"
+      }
+    ]
+  }
+}
