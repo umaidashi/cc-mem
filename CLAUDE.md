@@ -13,7 +13,7 @@ Claude Code の長期記憶システム。TypeScript + Bun + Ollama でローカ
 
 ```
 src/
-├── cli/          # CLI コマンド (save, search, import, recall, log, gc, export, stats)
+├── cli/          # CLI コマンド (save, search, import, gc, stats)
 ├── db/           # SQLite スキーマ (schema.ts)
 ├── chunker/      # Q&A チャンク化 + テキストクリーニング
 ├── embedder/     # Ollama embedding API 連携
@@ -35,10 +35,7 @@ cc-mem search --all <query>        # 全プロジェクト横断検索
 cc-mem search --context <query>    # 前後の会話つき検索
 cc-mem search --limit N <query>    # 件数指定
 cc-mem import                      # 一括取り込み（--dry-run, --project, --verbose）
-cc-mem recall                      # 直近3セッション概要（--last N, --all）
-cc-mem log                         # セッション履歴（--last N）
 cc-mem gc                          # 古いメモリ削除（--older-than, --session, --dry-run）
-cc-mem export                      # JSONエクスポート（--session）
 cc-mem stats                       # 統計表示
 ```
 

@@ -26,15 +26,15 @@
 ## P2: 運用・可視化
 
 - [x] `cc-mem import` — 既存セッションログの一括取り込み → ADR-005
-- [x] `cc-mem log` — 直近N セッションの保存履歴を表示 → ADR-007
+- [x] ~~`cc-mem log`~~ — 削除済み
 - [x] `cc-mem gc` — 古い・低スコアのメモリを削除 → ADR-008
-- [x] `cc-mem export` — JSON エクスポート → ADR-009
+- [x] ~~`cc-mem export`~~ — 削除済み
 
 ## P3: 野心的な方向性
 
 - [ ] セッションサマリ: Q&A 羅列ではなくセッション全体の要約を保存（LLM使用）
 - [x] プロジェクト別スコープ（1DB + project カラム） → ADR-011
-- [x] SessionStart Hook で自動想起 → system prompt に注入 → ADR-010
+- [x] ~~SessionStart Hook で自動想起 (`cc-mem recall`)~~ — 削除済み
 - [ ] 短期記憶層の導入（下記「短期記憶 vs 長期記憶」参照）
 
 ## 短期記憶 vs 長期記憶

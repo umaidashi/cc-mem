@@ -202,6 +202,7 @@ export CC_MEM_DEDUP_THRESHOLD=0.98
      }
    }
    ```
+   ※ `SessionStart` Hook は不要です。`Stop` Hook のみ設定してください。
 
 3. **cc-mem コマンドのパスを確認**
    Hook はシェルのサブプロセスで実行されるため、PATH が通っていない可能性があります:

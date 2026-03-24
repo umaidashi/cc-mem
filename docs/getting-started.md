@@ -65,17 +65,11 @@ cc-mem import
 
 ## 5. Claude Code の Hook を設定
 
-`~/.claude/settings.json` を編集して、SessionStart Hook（recall）と Stop Hook（save）を追加します。
+`~/.claude/settings.json` を編集して、Stop Hook（save）を追加します。
 
 ```json
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "command": "cc-mem recall 2>/dev/null"
-      }
-    ],
     "Stop": [
       {
         "matcher": "",
@@ -86,10 +80,9 @@ cc-mem import
 }
 ```
 
-- **SessionStart Hook:** セッション開始時に `cc-mem recall` を実行し、直近3セッションの概要を自動表示する
 - **Stop Hook:** セッション終了時に会話を自動保存する
 
-既に `settings.json` に他の設定がある場合は、各配列に上記オブジェクトを追加してください。詳しくは [設定リファレンス](./configuration.md) を参照してください。
+既に `settings.json` に他の設定がある場合は、配列に上記オブジェクトを追加してください。詳しくは [設定リファレンス](./configuration.md) を参照してください。
 
 ## 6. CLAUDE.md に検索方法を記載
 

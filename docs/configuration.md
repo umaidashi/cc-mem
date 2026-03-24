@@ -14,17 +14,11 @@ cc-mem の設定方法をまとめたリファレンスです。
 
 ### 基本設定
 
-SessionStart Hook に recall、Stop Hook に save を登録します。
+Stop Hook に save を登録します。
 
 ```json
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "command": "cc-mem recall 2>/dev/null"
-      }
-    ],
     "Stop": [
       {
         "matcher": "",
@@ -35,11 +29,10 @@ SessionStart Hook に recall、Stop Hook に save を登録します。
 }
 ```
 
-**各 Hook の役割:**
+**Hook の役割:**
 
 | Hook | コマンド | 説明 |
 |---|---|---|
-| `SessionStart` | `cc-mem recall` | セッション開始時に直近3セッションの概要を自動表示 |
 | `Stop` | `cc-mem save` | レスポンス生成完了時に会話を自動保存 |
 
 **各フィールドの意味:**
@@ -57,17 +50,11 @@ SessionStart Hook に recall、Stop Hook に save を登録します。
 
 ### 既存の Hook がある場合
 
-`settings.json` に既に他の Hook が設定されている場合は、各配列に追加します。
+`settings.json` に既に他の Hook が設定されている場合は、配列に追加します。
 
 ```json
 {
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "command": "cc-mem recall 2>/dev/null"
-      }
-    ],
     "Stop": [
       {
         "matcher": "",
@@ -92,12 +79,6 @@ SessionStart Hook に recall、Stop Hook に save を登録します。
     "allow": ["Bash(*)"]
   },
   "hooks": {
-    "SessionStart": [
-      {
-        "matcher": "",
-        "command": "cc-mem recall 2>/dev/null"
-      }
-    ],
     "Stop": [
       {
         "matcher": "",
@@ -157,7 +138,7 @@ cc-mem search "検索クエリ"
 |---|---|---|
 | `CC_MEM_OLLAMA_URL` | `http://localhost:11434` | Ollama の API エンドポイント |
 | `CC_MEM_EMBED_MODEL` | `nomic-embed-text` | embedding に使用する Ollama モデル |
-| `CC_MEM_PROJECT` | CWD の basename | プロジェクトスコープ名。search/recall のデフォルトスコープを上書き |
+| `CC_MEM_PROJECT` | CWD の basename | プロジェクトスコープ名。search のデフォルトスコープを上書き |
 | `CC_MEM_MIN_CHUNK_LENGTH` | `100` | 短文フィルタの閾値（Q+A の合計文字数がこの値未満のチャンクを除外） |
 | `CC_MEM_DEDUP_THRESHOLD` | `0.95` | 重複排除の閾値（既存メモリとのコサイン類似度がこの値以上なら保存をスキップ） |
 
@@ -207,17 +188,10 @@ cc-mem search --limit N <query>    # 件数指定
 cc-mem import                      # 一括取り込み（~/.claude/projects/ から）
 cc-mem import --dry-run            # 取り込み件数の確認のみ
 cc-mem import --project <name>     # 特定プロジェクトのみ取り込み
-cc-mem recall                      # 直近3セッション概要（SessionStart Hook で自動実行）
-cc-mem recall --last N             # 表示セッション数を指定
-cc-mem recall --all                # 全プロジェクトのセッションを表示
-cc-mem log                         # セッション履歴一覧（デフォルト: 10件）
-cc-mem log --last N                # 表示件数を指定
 cc-mem gc                          # 古いメモリ削除（デフォルト: 90日以上）
 cc-mem gc --older-than 60d         # 日数指定
 cc-mem gc --session <id>           # 特定セッション削除
 cc-mem gc --dry-run                # 削除件数の確認のみ
-cc-mem export                      # JSON エクスポート
-cc-mem export --session <id>       # 特定セッションのみ
 cc-mem stats                       # 統計情報を表示
 cc-mem --help                      # ヘルプを表示
 cc-mem --version                   # バージョンを表示
