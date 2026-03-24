@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "cc-mem",
+  "version": "0.1.0",
+  "description": "Long-term memory for Claude Code",
+  "owner": {
+    "name": "umaidashi"
+  },
+  "plugins": [
+    {
+      "name": "cc-mem",
+      "source": ".",
+      "description": "Auto-save conversations, hybrid search, project-scoped recall",
+      "version": "0.1.0",
+      "category": "productivity"
+    }
+  ]
+}
