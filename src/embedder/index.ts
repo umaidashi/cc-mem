@@ -1,5 +1,7 @@
-const OLLAMA_URL = process.env.CC_MEM_OLLAMA_URL ?? "http://localhost:11434";
-const EMBED_MODEL = process.env.CC_MEM_EMBED_MODEL ?? "nomic-embed-text";
+import { config } from "../config";
+
+const OLLAMA_URL = config.ollamaUrl;
+const EMBED_MODEL = config.embedModel;
 const MAX_BATCH_SIZE = 32;
 
 interface OllamaEmbedResponse {

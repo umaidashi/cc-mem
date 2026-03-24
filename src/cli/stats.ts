@@ -2,10 +2,11 @@ import { initDb } from "../db/schema";
 import { statSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { config } from "../config";
 
 export async function stats(): Promise<void> {
-  const dbPath = join(homedir(), ".cc-mem", "memory.db");
-  const db = initDb(dbPath);
+  const dbPath = config.dbPath ?? join(homedir(), ".cc-mem", "memory.db");
+  const db = initDb();
 
   const total = db.query<{ count: number }, []>(
     "SELECT COUNT(*) as count FROM memories",

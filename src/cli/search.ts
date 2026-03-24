@@ -10,14 +10,20 @@ function formatDate(dateStr: string): string {
   return dateStr.slice(0, 10);
 }
 
-export async function search(query: string, limit: number = 5): Promise<void> {
+export async function search(
+  query: string,
+  limit: number = 5,
+  withContext: boolean = false,
+): Promise<void> {
   if (!query || query.trim() === "") {
     console.error("クエリを指定してください");
     process.exit(1);
   }
 
   const db = initDb();
-  const results: SearchResult[] = await hybridSearch(db, query, limit);
+  const results: SearchResult[] = await hybridSearch(db, query, limit, {
+    withContext,
+  });
 
   if (results.length === 0) {
     console.log(`No memories found for: "${query}"`);
@@ -35,8 +41,31 @@ export async function search(query: string, limit: number = 5): Promise<void> {
     const a = truncate(r.answer, 200);
 
     console.log("---");
-    console.log(`### #${rank} [score: ${score}] (${date})`);
+    console.log(
+      `### #${rank} [score: ${score}] (${date}) session: ${r.sessionId}`,
+    );
+
+    if (r.context) {
+      for (const ctx of r.context) {
+        if (ctx.position === "before") {
+          console.log(`  [before] Q: ${truncate(ctx.question, 80)}`);
+          console.log(`  [before] A: ${truncate(ctx.answer, 150)}`);
+        }
+      }
+    }
+
     console.log(`**Q:** ${q}`);
-    console.log(`**A:** ${a}\n`);
+    console.log(`**A:** ${a}`);
+
+    if (r.context) {
+      for (const ctx of r.context) {
+        if (ctx.position === "after") {
+          console.log(`  [after] Q: ${truncate(ctx.question, 80)}`);
+          console.log(`  [after] A: ${truncate(ctx.answer, 150)}`);
+        }
+      }
+    }
+
+    console.log("");
   }
 }

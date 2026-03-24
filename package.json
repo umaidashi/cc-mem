@@ -15,6 +15,7 @@
     "test:filter": "bun test tests/filter.test.ts",
     "test:dedup": "bun test tests/dedup.test.ts",
     "test:cleaning": "bun test tests/cleaning.test.ts",
+    "test:e2e": "bash scripts/e2e-test.sh",
     "setup": "ollama pull nomic-embed-text && bun link",
     "typecheck": "bunx tsc --noEmit"
   },

@@ -1,4 +1,5 @@
 import type { QAChunk } from "../chunker";
+import { config } from "../config";
 
 export interface FilterResult {
   kept: QAChunk[];
@@ -16,8 +17,7 @@ export function filterChunks(
   chunks: QAChunk[],
   options?: { minLength?: number },
 ): FilterResult {
-  const envMin = process.env.CC_MEM_MIN_CHUNK_LENGTH;
-  const minLength = options?.minLength ?? (envMin ? Number(envMin) : 100);
+  const minLength = options?.minLength ?? config.minChunkLength;
 
   const kept: QAChunk[] = [];
   const reasons = new Map<string, number>();

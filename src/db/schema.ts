@@ -2,10 +2,11 @@ import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { homedir } from "node:os";
+import { config } from "../config";
 
 const DEFAULT_DB_PATH = join(homedir(), ".cc-mem", "memory.db");
 
-export function initDb(dbPath: string = DEFAULT_DB_PATH): Database {
+export function initDb(dbPath: string = config.dbPath ?? DEFAULT_DB_PATH): Database {
   // 親ディレクトリを自動作成
   mkdirSync(dirname(dbPath), { recursive: true });
 

@@ -5,6 +5,13 @@ import { embed, bufferToVector, cosineSimilarity } from "../embedder";
 // Types
 // ---------------------------------------------------------------------------
 
+export interface ContextItem {
+  id: number;
+  question: string;
+  answer: string;
+  position: "before" | "after";
+}
+
 export interface SearchResult {
   id: number;
   sessionId: string;
@@ -12,6 +19,7 @@ export interface SearchResult {
   answer: string;
   score: number;
   createdAt: string;
+  context?: ContextItem[];
 }
 
 interface RankedId {
@@ -165,6 +173,7 @@ export async function hybridSearch(
   db: Database,
   query: string,
   limit: number = 5,
+  options?: { withContext?: boolean; contextSize?: number },
 ): Promise<SearchResult[]> {
   // Generous candidate pool for each retriever
   const candidateLimit = limit * 10;
@@ -216,5 +225,42 @@ export async function hybridSearch(
 
   results.sort((a, b) => b.score - a.score);
 
-  return results.slice(0, limit);
+  const finalResults = results.slice(0, limit);
+
+  if (options?.withContext) {
+    const contextSize = options.contextSize ?? 2;
+    for (const result of finalResults) {
+      const before = db
+        .query<MemoryRow, [string, number, number]>(
+          `SELECT id, session_id, question, answer, created_at FROM memories
+           WHERE session_id = ? AND id < ? ORDER BY id DESC LIMIT ?`,
+        )
+        .all(result.sessionId, result.id, contextSize)
+        .reverse();
+
+      const after = db
+        .query<MemoryRow, [string, number, number]>(
+          `SELECT id, session_id, question, answer, created_at FROM memories
+           WHERE session_id = ? AND id > ? ORDER BY id ASC LIMIT ?`,
+        )
+        .all(result.sessionId, result.id, contextSize);
+
+      result.context = [
+        ...before.map((r) => ({
+          id: r.id,
+          question: r.question,
+          answer: r.answer,
+          position: "before" as const,
+        })),
+        ...after.map((r) => ({
+          id: r.id,
+          question: r.question,
+          answer: r.answer,
+          position: "after" as const,
+        })),
+      ];
+    }
+  }
+
+  return finalResults;
 }

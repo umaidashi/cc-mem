@@ -18,16 +18,17 @@
 
 ## P2: 検索体験の向上
 
-- [ ] `--context` オプション: 前後の Q&A や同セッションの他の Q&A も返す
+- [x] `--context` オプション: 前後の Q&A や同セッションの他の Q&A も返す → ADR-006
 - [ ] タグ・カテゴリ自動分類（design, debug, config, discussion）
 - [ ] `--tag` オプションで絞り込み検索
 - [ ] `--summarize` オプション: 検索結果を LLM で要約（オプトイン）
 
 ## P2: 運用・可視化
 
+- [x] `cc-mem import` — 既存セッションログの一括取り込み → ADR-005
 - [ ] `cc-mem log` — 直近N セッションの保存履歴を表示
 - [ ] `cc-mem gc` — 古い・低スコアのメモリを削除
-- [ ] `cc-mem export/import` — JSON エクスポート・インポート
+- [ ] `cc-mem export` — JSON エクスポート
 
 ## P3: 野心的な方向性
 

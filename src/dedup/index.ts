@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import type { QAChunk } from "../chunker";
+import { config } from "../config";
 import { bufferToVector, cosineSimilarity } from "../embedder";
 
 export interface DedupResult {
@@ -14,11 +15,7 @@ export async function dedup(
     threshold?: number;
   },
 ): Promise<DedupResult> {
-  const threshold =
-    options?.threshold ??
-    (process.env.CC_MEM_DEDUP_THRESHOLD
-      ? parseFloat(process.env.CC_MEM_DEDUP_THRESHOLD)
-      : 0.95);
+  const threshold = options?.threshold ?? config.dedupThreshold;
 
   // DB から embedding NOT NULL な全レコードを取得
   const rows = db
