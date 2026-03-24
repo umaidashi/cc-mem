@@ -15,6 +15,9 @@ export function initDb(dbPath: string = config.dbPath ?? DEFAULT_DB_PATH): Datab
   // WALモード有効化
   db.run("PRAGMA journal_mode = WAL");
 
+  // 外部キー制約を有効化（CASCADE 削除に必要）
+  db.run("PRAGMA foreign_keys = ON");
+
   // memories テーブル
   db.run(`
     CREATE TABLE IF NOT EXISTS memories (
@@ -64,6 +67,18 @@ export function initDb(dbPath: string = config.dbPath ?? DEFAULT_DB_PATH): Datab
       VALUES ('delete', old.id, old.question, old.answer);
     END
   `);
+
+  // memory_keys テーブル（キー自動抽出用）
+  db.run(`
+    CREATE TABLE IF NOT EXISTS memory_keys (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      memory_id INTEGER NOT NULL REFERENCES memories(id) ON DELETE CASCADE,
+      key_type TEXT NOT NULL,
+      key_value TEXT NOT NULL
+    )
+  `);
+  db.run("CREATE INDEX IF NOT EXISTS idx_memory_keys_value ON memory_keys(key_value)");
+  db.run("CREATE INDEX IF NOT EXISTS idx_memory_keys_type ON memory_keys(key_type)");
 
   return db;
 }

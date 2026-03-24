@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { embed, bufferToVector, cosineSimilarity } from "../embedder";
+import { extractKeys } from "../keys";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -211,6 +212,24 @@ export async function hybridSearch(
 
   // Merge with RRF
   const rrfScores = reciprocalRankFusion(ftsResults, vecResults);
+
+  // Key-based boost: クエリ内のキーパターンで完全一致検索し、スコアをブースト
+  const queryKeys = extractKeys(query);
+  if (queryKeys.length > 0) {
+    const keyValues = queryKeys.map((k) => k.value);
+    const keyPlaceholders = keyValues.map(() => "?").join(",");
+    const keyRows = db
+      .query<{ memory_id: number }, string[]>(
+        `SELECT DISTINCT memory_id FROM memory_keys WHERE key_value IN (${keyPlaceholders})`,
+      )
+      .all(...keyValues);
+
+    const KEY_BOOST = 1 / (RRF_K + 1); // rank 1 相当のブースト
+    for (const { memory_id } of keyRows) {
+      const prev = rrfScores.get(memory_id) ?? 0;
+      rrfScores.set(memory_id, prev + KEY_BOOST);
+    }
+  }
 
   if (rrfScores.size === 0) {
     return [];

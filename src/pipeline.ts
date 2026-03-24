@@ -3,6 +3,7 @@ import { chunkTranscript } from "./chunker";
 import { dedup } from "./dedup";
 import { embedBatch, vectorToBuffer } from "./embedder";
 import { filterChunks } from "./filter";
+import { extractKeys } from "./keys";
 
 export interface SaveResult {
   sessionId: string;
@@ -83,12 +84,24 @@ export async function processSave(
     "INSERT INTO memories (session_id, question, answer, embedding, project) VALUES (?, ?, ?, ?, ?)",
   );
 
+  const insertKey = db.prepare(
+    "INSERT INTO memory_keys (memory_id, key_type, key_value) VALUES (?, ?, ?)",
+  );
+
   const proj = project ?? "";
 
   const insertAll = db.transaction(() => {
     for (const { chunk, embedding } of dedupResult.unique) {
       const embeddingBuf = embedding ? vectorToBuffer(embedding) : null;
       insert.run(sessionId, chunk.question, chunk.answer, embeddingBuf, proj);
+
+      const row = db.query<{ id: number }, []>("SELECT last_insert_rowid() as id").get();
+      const memoryId = row!.id;
+
+      const keys = extractKeys(`${chunk.question}\n${chunk.answer}`);
+      for (const key of keys) {
+        insertKey.run(memoryId, key.type, key.value);
+      }
     }
   });
 
